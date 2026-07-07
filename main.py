@@ -1,10 +1,12 @@
 from fastapi import FastAPI
 from database import engine, Base
 import models #Importing this so that SQLAlchemy knows about WeatherRecord before creating tables
+from routers import weather
 
 Base.metadata.create_all(bind=engine) #Creating all tables that don't already exist
 
 app = FastAPI(title="Weather App API")
+app.include_router(weather.router)
 
 @app.get("/")
 def root():
