@@ -13,7 +13,20 @@ class WeatherCreateRequest(BaseModel):
     def validate_date_range(cls, end_date, info):
         start_date = info.data.get("start_date")
         if start_date and end_date < start_date:
-            raise ValueError("end_date must be on or after start_date") #Catches reversed date ranges
+            raise ValueError("end_date must be on or after start_date")
+        return end_date
+
+
+class WeatherUpdateRequest(BaseModel):
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+
+    @field_validator("end_date")
+    @classmethod
+    def validate_date_range(cls, end_date, info):
+        start_date = info.data.get("start_date")
+        if start_date and end_date and end_date < start_date:
+            raise ValueError("end_date must be on or after start_date")
         return end_date
 
 
@@ -36,4 +49,11 @@ class WeatherRecordResponse(BaseModel):
     updated_at: datetime
 
     class Config:
-        from_attributes = True #Allows Pydantic to read directly from SQLAlchemy model objects
+        from_attributes = True
+
+
+class PaginatedWeatherResponse(BaseModel):
+    total: int
+    page: int
+    limit: int
+    results: List[WeatherRecordResponse]
