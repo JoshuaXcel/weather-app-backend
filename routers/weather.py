@@ -4,6 +4,9 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from fastapi.responses import PlainTextResponse
+import export_service
+
 from database import get_db
 from schemas import (
     WeatherCreateRequest,
@@ -72,3 +75,31 @@ def delete_weather(record_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail=f"Weather record {record_id} not found")
     logger.info(f"Weather record {record_id} deleted")
     return {"message": f"Weather record {record_id} deleted successfully"}
+
+
+@router.get("/{record_id}/export")
+def export_weather(record_id: int, format: str = "json", db: Session = Depends(get_db)):
+    record = crud.get_weather_record_by_id(db, record_id)
+
+    if not record:
+        raise HTTPException(status_code=404, detail=f"Weather record {record_id} not found")
+
+    if format == "json":
+        content = export_service.export_as_json(record)
+        media_type = "application/json"
+    elif format == "csv":
+        content = export_service.export_as_csv(record)
+        media_type = "text/csv"
+    elif format == "xml":
+        content = export_service.export_as_xml(record)
+        media_type = "application/xml"
+    else:
+        raise HTTPException(status_code=400, detail="format must be one of: json, csv, xml")
+
+    logger.info(f"Exported weather record {record_id} as {format}")
+
+    return PlainTextResponse(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f"attachment; filename=weather_{record_id}.{format}"}
+    )
