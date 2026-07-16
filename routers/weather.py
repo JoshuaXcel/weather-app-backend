@@ -103,3 +103,25 @@ def export_weather(record_id: int, format: str = "json", db: Session = Depends(g
         media_type=media_type,
         headers={"Content-Disposition": f"attachment; filename=weather_{record_id}.{format}"}
     )
+
+@router.get("/{record_id}/map")
+def get_weather_map(record_id: int, db: Session = Depends(get_db)):
+    record = crud.get_weather_record_by_id(db, record_id)
+
+    if not record:
+        raise HTTPException(status_code=404, detail=f"Weather record {record_id} not found")
+
+    lat = float(record.latitude)
+    lon = float(record.longitude)
+
+    #Small bounding box around the point, for the embed viewport
+    delta = 0.05
+    bbox = f"{lon - delta},{lat - delta},{lon + delta},{lat + delta}"
+
+    return {
+        "location": record.resolved_name,
+        "latitude": lat,
+        "longitude": lon,
+        "embed_url": f"https://www.openstreetmap.org/export/embed.html?bbox={bbox}&marker={lat},{lon}",
+        "view_url": f"https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=12/{lat}/{lon}"
+    }
